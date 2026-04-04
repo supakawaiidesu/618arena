@@ -38,7 +38,7 @@ export function getVoteButtonLabel(
   }
 
   if (currentDirection === direction) {
-    return `Remove your ${direction}vote from ${riotId}. Total ${direction}votes ${voteCount}`
+    return `Edit your ${direction}vote for ${riotId}. Total ${direction}votes ${voteCount}`
   }
 
   if (currentDirection) {
@@ -61,7 +61,7 @@ export function getVoteButtonTitle(
   }
 
   if (currentDirection === direction) {
-    return `Remove your ${direction}vote from ${riotId}`
+    return `Edit your ${direction}vote for ${riotId}`
   }
 
   if (currentDirection) {

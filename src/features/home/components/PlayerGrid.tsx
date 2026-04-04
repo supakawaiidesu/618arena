@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { LiveLookup } from '../../lookup/types'
 import { getPlayerVoteKey } from '../../votes/selectors'
-import type { PlayerGameVoteCache, PlayerVoteCache, VoteDirection } from '../../votes/types'
+import type { PlayerGameVoteCache, PlayerVoteCache, VoteDirection, VoteReason } from '../../votes/types'
 import { getPlayerColumn, getRankWidths } from '../playerGrid'
 import { PlayerCard } from './PlayerCard'
 
@@ -10,13 +10,15 @@ type PlayerGridProps = {
   playerGameVotes: PlayerGameVoteCache
   playerVotes: PlayerVoteCache
   onVote: PlayerCardProps['onVote']
+  onClearVote: PlayerCardProps['onClearVote']
 }
 
 type PlayerCardProps = {
-  onVote: (player: LiveLookup['players'][number], gameId: number, direction: VoteDirection) => void
+  onVote: (player: LiveLookup['players'][number], gameId: number, direction: VoteDirection, reason: VoteReason) => void
+  onClearVote: (player: LiveLookup['players'][number], gameId: number) => void
 }
 
-export function PlayerGrid({ result, playerGameVotes, playerVotes, onVote }: PlayerGridProps) {
+export function PlayerGrid({ result, playerGameVotes, playerVotes, onVote, onClearVote }: PlayerGridProps) {
   const rowCount = Math.ceil(result.players.length / 2)
   const rankWidths = getRankWidths(result.players, rowCount)
   const playerGridStyle = {
@@ -41,6 +43,7 @@ export function PlayerGrid({ result, playerGameVotes, playerVotes, onVote }: Pla
               playerGameVotes={playerGameVotes}
               voteCounts={voteCounts}
               onVote={onVote}
+              onClearVote={onClearVote}
             />
           )
         })}

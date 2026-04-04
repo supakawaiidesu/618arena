@@ -19,7 +19,7 @@ export function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [inputMessage, setInputMessage] = useState('')
   const [retryCooldownSeconds, setRetryCooldownSeconds] = useState(0)
-  const { playerGameVotes, playerVotes, toggleVote } = usePlayerVotes()
+  const { playerGameVotes, playerVotes, setVote, clearVote } = usePlayerVotes()
 
   useEffect(() => {
     if (retryCooldownSeconds <= 0) {
@@ -109,7 +109,8 @@ export function HomePage() {
           result={liveResult}
           playerGameVotes={playerGameVotes}
           playerVotes={playerVotes}
-          onVote={toggleVote}
+          onVote={setVote}
+          onClearVote={clearVote}
         />
       ) : null}
 
