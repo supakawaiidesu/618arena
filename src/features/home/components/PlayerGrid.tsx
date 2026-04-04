@@ -9,6 +9,7 @@ type PlayerGridProps = {
   result: LiveLookup
   playerGameVotes: PlayerGameVoteCache
   playerVotes: PlayerVoteCache
+  voteDisabledReason: string | null
   onVote: PlayerCardProps['onVote']
   onClearVote: PlayerCardProps['onClearVote']
 }
@@ -18,7 +19,7 @@ type PlayerCardProps = {
   onClearVote: (player: LiveLookup['players'][number], gameId: number) => void
 }
 
-export function PlayerGrid({ result, playerGameVotes, playerVotes, onVote, onClearVote }: PlayerGridProps) {
+export function PlayerGrid({ result, playerGameVotes, playerVotes, voteDisabledReason, onVote, onClearVote }: PlayerGridProps) {
   const rowCount = Math.ceil(result.players.length / 2)
   const rankWidths = getRankWidths(result.players, rowCount)
   const playerGridStyle = {
@@ -42,6 +43,7 @@ export function PlayerGrid({ result, playerGameVotes, playerVotes, onVote, onCle
               rankWidth={rankWidths[playerColumn]}
               playerGameVotes={playerGameVotes}
               voteCounts={voteCounts}
+              voteDisabledReason={voteDisabledReason}
               onVote={onVote}
               onClearVote={onClearVote}
             />

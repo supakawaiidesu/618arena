@@ -1,5 +1,7 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
+import { AuthPanel } from '../auth/AuthPanel'
+import { useAuthSession } from '../auth/useAuthSession'
 import {
   DEFAULT_QUERY,
   RIOT_OUTAGE_MESSAGE,
@@ -19,7 +21,14 @@ export function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [inputMessage, setInputMessage] = useState('')
   const [retryCooldownSeconds, setRetryCooldownSeconds] = useState(0)
-  const { playerGameVotes, playerVotes, setVote, clearVote } = usePlayerVotes()
+  const auth = useAuthSession()
+  const hasOutput = isLoading || result !== null
+  const liveResult = result?.status === 'live' ? result : null
+  const { playerGameVotes, playerVotes, errorMessage: voteErrorMessage, setVote, clearVote } = usePlayerVotes({
+    result: liveResult,
+    profile: auth.profile,
+    voteDisabledReason: auth.voteDisabledReason,
+  })
 
   useEffect(() => {
     if (retryCooldownSeconds <= 0) {
@@ -35,8 +44,6 @@ export function HomePage() {
     }
   }, [retryCooldownSeconds])
 
-  const hasOutput = isLoading || result !== null
-  const liveResult = result?.status === 'live' ? result : null
   const isRetryLocked = retryCooldownSeconds > 0
   const isSubmitDisabled = isLoading || isRetryLocked
   const errorMessage =
@@ -93,6 +100,17 @@ export function HomePage() {
 
   return (
     <main className={`page-shell${hasOutput ? ' has-output' : ''}`}>
+      <AuthPanel
+        isConfigured={auth.isConfigured}
+        isLoading={auth.isLoading}
+        isSignedIn={Boolean(auth.session)}
+        isSyncingProfile={auth.isSyncingProfile}
+        profile={auth.profile}
+        errorMessage={auth.errorMessage}
+        onSignIn={auth.signIn}
+        onSignOut={auth.signOut}
+      />
+
       <SearchForm
         query={query}
         placeholder={DEFAULT_QUERY}
@@ -109,12 +127,14 @@ export function HomePage() {
           result={liveResult}
           playerGameVotes={playerGameVotes}
           playerVotes={playerVotes}
+          voteDisabledReason={auth.voteDisabledReason}
           onVote={setVote}
           onClearVote={clearVote}
         />
       ) : null}
 
       <LookupStatus result={result} errorMessage={errorMessage} />
+      {voteErrorMessage ? <p className="status-text error">{voteErrorMessage}</p> : null}
     </main>
   )
 }

@@ -17,21 +17,34 @@ type PlayerCardProps = {
   rankWidth: string
   playerGameVotes: PlayerGameVoteCache
   voteCounts: PlayerVoteCounts
+  voteDisabledReason: string | null
   onVote: (player: PlayerRow, gameId: number, direction: VoteDirection, reason: VoteReason) => void
   onClearVote: (player: PlayerRow, gameId: number) => void
 }
 
-export function PlayerCard({ player, gameId, rankWidth, playerGameVotes, voteCounts, onVote, onClearVote }: PlayerCardProps) {
+export function PlayerCard({
+  player,
+  gameId,
+  rankWidth,
+  playerGameVotes,
+  voteCounts,
+  voteDisabledReason,
+  onVote,
+  onClearVote,
+}: PlayerCardProps) {
   const [openVoteDirection, setOpenVoteDirection] = useState<VoteDirection | null>(null)
   const voteBoxRef = useRef<HTMLDivElement | null>(null)
   const currentVote = playerGameVotes[String(gameId)]?.[getPlayerVoteKey(player)]
   const currentVoteDirection = currentVote?.direction ?? null
   const currentVoteReason = currentVote?.reason ?? null
-  const isVoteDisabled = player.isSearchedPlayer
-  const upVoteLabel = getVoteButtonLabel(player, 'up', currentVoteDirection, voteCounts, isVoteDisabled)
-  const downVoteLabel = getVoteButtonLabel(player, 'down', currentVoteDirection, voteCounts, isVoteDisabled)
-  const upVoteTitle = getVoteButtonTitle(player, 'up', currentVoteDirection, isVoteDisabled)
-  const downVoteTitle = getVoteButtonTitle(player, 'down', currentVoteDirection, isVoteDisabled)
+  const voteDisableMessage = player.isSearchedPlayer
+    ? `You cannot vote on ${player.gameName}#${player.tagLine}.`
+    : voteDisabledReason
+  const isVoteDisabled = voteDisableMessage !== null
+  const upVoteLabel = getVoteButtonLabel(player, 'up', currentVoteDirection, voteCounts, voteDisableMessage)
+  const downVoteLabel = getVoteButtonLabel(player, 'down', currentVoteDirection, voteCounts, voteDisableMessage)
+  const upVoteTitle = getVoteButtonTitle(player, 'up', currentVoteDirection, voteDisableMessage)
+  const downVoteTitle = getVoteButtonTitle(player, 'down', currentVoteDirection, voteDisableMessage)
   const reasonOptions = openVoteDirection ? getVoteReasonOptions(openVoteDirection) : []
 
   useEffect(() => {

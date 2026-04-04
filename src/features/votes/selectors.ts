@@ -28,13 +28,13 @@ export function getVoteButtonLabel(
   direction: VoteDirection,
   currentDirection: VoteDirection | null,
   voteCounts: PlayerVoteCounts,
-  isDisabled: boolean,
+  disabledReason: string | null,
 ) {
   const riotId = `${player.gameName}#${player.tagLine}`
   const voteCount = voteCounts[direction]
 
-  if (isDisabled) {
-    return `You cannot vote on ${riotId}.`
+  if (disabledReason) {
+    return disabledReason
   }
 
   if (currentDirection === direction) {
@@ -52,12 +52,12 @@ export function getVoteButtonTitle(
   player: PlayerRow,
   direction: VoteDirection,
   currentDirection: VoteDirection | null,
-  isDisabled: boolean,
+  disabledReason: string | null,
 ) {
   const riotId = `${player.gameName}#${player.tagLine}`
 
-  if (isDisabled) {
-    return `You cannot vote on ${riotId}`
+  if (disabledReason) {
+    return disabledReason
   }
 
   if (currentDirection === direction) {
