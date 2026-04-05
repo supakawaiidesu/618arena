@@ -1,6 +1,5 @@
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
-import { AuthPanel } from '../auth/AuthPanel'
+import { useEffect, useRef, useState } from 'react'
 import { useAuthSession } from '../auth/useAuthSession'
 import {
   DEFAULT_QUERY,
@@ -16,12 +15,16 @@ import { PlayerGrid } from './components/PlayerGrid'
 import { SearchForm } from './components/SearchForm'
 
 export function HomePage() {
-  const [query, setQuery] = useState(DEFAULT_QUERY)
+  const [query, setQuery] = useState('')
   const [result, setResult] = useState<LookupResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [inputMessage, setInputMessage] = useState('')
   const [retryCooldownSeconds, setRetryCooldownSeconds] = useState(0)
   const auth = useAuthSession()
+  const connectedRiotName = auth.profile?.riotGameName && auth.profile.riotTagLine
+    ? `${auth.profile.riotGameName}#${auth.profile.riotTagLine}`
+    : null
+  const previousConnectedRiotNameRef = useRef<string | null>(null)
   const hasOutput = isLoading || result !== null
   const liveResult = result?.status === 'live' ? result : null
   const { playerGameVotes, playerVotes, errorMessage: voteErrorMessage, setVote, clearVote } = usePlayerVotes({
@@ -43,6 +46,24 @@ export function HomePage() {
       window.clearTimeout(timeoutId)
     }
   }, [retryCooldownSeconds])
+
+  useEffect(() => {
+    const previousConnectedRiotName = previousConnectedRiotNameRef.current
+
+    if (connectedRiotName) {
+      setQuery((currentQuery) => {
+        if (!currentQuery.trim() || currentQuery === DEFAULT_QUERY || currentQuery === previousConnectedRiotName) {
+          return connectedRiotName
+        }
+
+        return currentQuery
+      })
+    } else if (previousConnectedRiotName) {
+      setQuery((currentQuery) => (currentQuery === previousConnectedRiotName ? '' : currentQuery))
+    }
+
+    previousConnectedRiotNameRef.current = connectedRiotName
+  }, [connectedRiotName])
 
   const isRetryLocked = retryCooldownSeconds > 0
   const isSubmitDisabled = isLoading || isRetryLocked
@@ -100,26 +121,23 @@ export function HomePage() {
 
   return (
     <main className={`page-shell${hasOutput ? ' has-output' : ''}`}>
-      <AuthPanel
-        isConfigured={auth.isConfigured}
-        isLoading={auth.isLoading}
-        isSignedIn={Boolean(auth.session)}
-        isSyncingProfile={auth.isSyncingProfile}
-        profile={auth.profile}
-        errorMessage={auth.errorMessage}
-        onSignIn={auth.signIn}
-        onSignOut={auth.signOut}
-      />
-
       <SearchForm
         query={query}
-        placeholder={DEFAULT_QUERY}
+        placeholder={connectedRiotName ?? DEFAULT_QUERY}
         inputMessage={inputMessage}
         isLoading={isLoading}
         isSubmitDisabled={isSubmitDisabled}
         retryCooldownSeconds={retryCooldownSeconds}
+        isConfigured={auth.isConfigured}
+        isAuthLoading={auth.isLoading}
+        isSignedIn={Boolean(auth.session)}
+        isSyncingProfile={auth.isSyncingProfile}
+        profile={auth.profile}
+        authErrorMessage={auth.errorMessage}
         onQueryChange={handleQueryChange}
         onSubmit={handleSubmit}
+        onSignIn={auth.signIn}
+        onSignOut={auth.signOut}
       />
 
       {liveResult ? (
