@@ -161,7 +161,7 @@ export function useAuthSession(): UseAuthSessionResult {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: window.location.href,
+        redirectTo: window.location.origin,
         scopes: 'identify connections',
       },
     })
