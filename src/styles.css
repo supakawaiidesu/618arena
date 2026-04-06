@@ -687,13 +687,20 @@ input:focus-visible {
   padding: 18px 20px;
 }
 
+.stats-rail-list-shell {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8px;
+}
+
 .stats-rail-list {
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.22) rgba(255, 255, 255, 0.04);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .stats-panel-empty {
@@ -702,26 +709,51 @@ input:focus-visible {
   color: var(--muted);
 }
 
-.stats-rail-list::-webkit-scrollbar,
 .stats-chart-halves::-webkit-scrollbar {
   width: 12px;
 }
 
-.stats-rail-list::-webkit-scrollbar-track,
+.stats-rail-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .stats-chart-halves::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.04);
   border-left: 1px solid var(--line);
 }
 
-.stats-rail-list::-webkit-scrollbar-thumb,
 .stats-chart-halves::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.18);
   border: 2px solid var(--surface);
 }
 
-.stats-rail-list::-webkit-scrollbar-thumb:hover,
 .stats-chart-halves::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
+}
+
+.stats-rail-scrollbar {
+  position: relative;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.stats-rail-scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.34);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transform: translateY(0);
+}
+
+.stats-rail-scrollbar[data-visible='false'] .stats-rail-scrollbar-thumb {
+  display: none;
 }
 
 .stats-rail-item {

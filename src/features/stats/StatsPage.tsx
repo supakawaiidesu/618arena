@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuthSession } from '../auth/useAuthSession'
 import { AccountMenuButton } from '../auth/components/AccountMenuButton'
 import { SiteSectionNav } from '../navigation/SiteSectionNav'
@@ -33,6 +33,9 @@ export function StatsPage() {
   const auth = useAuthSession()
   const [selectedKey, setSelectedKey] = useState(AGGREGATE_KEY)
   const [searchQuery, setSearchQuery] = useState('')
+  const railListRef = useRef<HTMLDivElement | null>(null)
+  const railScrollbarRef = useRef<HTMLDivElement | null>(null)
+  const railScrollbarThumbRef = useRef<HTMLSpanElement | null>(null)
   const { stats, isLoading, errorMessage } = useMyVoteStats({
     userId: auth.session?.user.id ?? null,
   })
@@ -60,6 +63,54 @@ export function StatsPage() {
       : stats.totalVotes === 0
         ? 'Vote on players from Live Game to unlock stats search'
         : 'Search players you voted on'
+
+  useEffect(() => {
+    const railList = railListRef.current
+    const railScrollbar = railScrollbarRef.current
+    const railScrollbarThumb = railScrollbarThumbRef.current
+
+    if (!railList || !railScrollbar || !railScrollbarThumb) {
+      return
+    }
+
+    let frameId = 0
+
+    const updateScrollbarThumb = () => {
+      const { clientHeight, scrollHeight, scrollTop } = railList
+      const isScrollable = scrollHeight > clientHeight + 1
+
+      railScrollbar.dataset.visible = isScrollable ? 'true' : 'false'
+
+      if (!isScrollable) {
+        railScrollbarThumb.style.height = '0px'
+        railScrollbarThumb.style.transform = 'translateY(0px)'
+        return
+      }
+
+      const thumbHeight = Math.max(48, (clientHeight / scrollHeight) * clientHeight)
+      const maxScrollTop = scrollHeight - clientHeight
+      const maxThumbOffset = clientHeight - thumbHeight
+      const thumbOffset = maxScrollTop > 0 ? (scrollTop / maxScrollTop) * maxThumbOffset : 0
+
+      railScrollbarThumb.style.height = `${thumbHeight}px`
+      railScrollbarThumb.style.transform = `translateY(${thumbOffset}px)`
+    }
+
+    const scheduleScrollbarThumbUpdate = () => {
+      cancelAnimationFrame(frameId)
+      frameId = requestAnimationFrame(updateScrollbarThumb)
+    }
+
+    scheduleScrollbarThumbUpdate()
+    railList.addEventListener('scroll', scheduleScrollbarThumbUpdate, { passive: true })
+    window.addEventListener('resize', scheduleScrollbarThumbUpdate)
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      railList.removeEventListener('scroll', scheduleScrollbarThumbUpdate)
+      window.removeEventListener('resize', scheduleScrollbarThumbUpdate)
+    }
+  }, [filteredPlayers.length, normalizedSearchQuery, stats.totalPlayers])
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -148,47 +199,52 @@ export function StatsPage() {
       ) : (
         <section className="stats-board" aria-label="Vote stats board">
           <aside className="stats-rail" aria-label="Players you voted on">
-            <div className="stats-rail-list">
-              {!normalizedSearchQuery ? (
-                <button
-                  type="button"
-                  className={`stats-rail-item${isAggregateSelected ? ' is-active' : ''}`}
-                  onClick={() => setSelectedKey(AGGREGATE_KEY)}
-                >
-                  <span className="stats-rail-item-main">
-                    <span className="stats-rail-item-title">All votes</span>
-                    <span className="stats-rail-item-meta">{stats.totalPlayers} players combined</span>
-                  </span>
-                  <span className="stats-rail-item-totals">
-                    <span className="stats-rail-up">{stats.totalUp}</span>
-                    <span className="stats-rail-divider">/</span>
-                    <span className="stats-rail-down">{stats.totalDown}</span>
-                  </span>
-                </button>
-              ) : null}
-
-              {filteredPlayers.length > 0 ? (
-                filteredPlayers.map((player) => (
+            <div className="stats-rail-list-shell">
+              <div ref={railListRef} className="stats-rail-list">
+                {!normalizedSearchQuery ? (
                   <button
-                    key={player.playerKey}
                     type="button"
-                    className={`stats-rail-item${selectedPlayer?.playerKey === player.playerKey ? ' is-active' : ''}`}
-                    onClick={() => setSelectedKey(player.playerKey)}
+                    className={`stats-rail-item${isAggregateSelected ? ' is-active' : ''}`}
+                    onClick={() => setSelectedKey(AGGREGATE_KEY)}
                   >
                     <span className="stats-rail-item-main">
-                      <span className="stats-rail-item-title">{player.displayName}</span>
-                      <span className="stats-rail-item-meta">{player.totalGames} games voted</span>
+                      <span className="stats-rail-item-title">All votes</span>
+                      <span className="stats-rail-item-meta">{stats.totalPlayers} players combined</span>
                     </span>
                     <span className="stats-rail-item-totals">
-                      <span className="stats-rail-up">{player.totalUp}</span>
+                      <span className="stats-rail-up">{stats.totalUp}</span>
                       <span className="stats-rail-divider">/</span>
-                      <span className="stats-rail-down">{player.totalDown}</span>
+                      <span className="stats-rail-down">{stats.totalDown}</span>
                     </span>
                   </button>
-                ))
-              ) : (
-                <p className="stats-panel-empty">No voted players match that search.</p>
-              )}
+                ) : null}
+
+                {filteredPlayers.length > 0 ? (
+                  filteredPlayers.map((player) => (
+                    <button
+                      key={player.playerKey}
+                      type="button"
+                      className={`stats-rail-item${selectedPlayer?.playerKey === player.playerKey ? ' is-active' : ''}`}
+                      onClick={() => setSelectedKey(player.playerKey)}
+                    >
+                      <span className="stats-rail-item-main">
+                        <span className="stats-rail-item-title">{player.displayName}</span>
+                        <span className="stats-rail-item-meta">{player.totalGames} games voted</span>
+                      </span>
+                      <span className="stats-rail-item-totals">
+                        <span className="stats-rail-up">{player.totalUp}</span>
+                        <span className="stats-rail-divider">/</span>
+                        <span className="stats-rail-down">{player.totalDown}</span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="stats-panel-empty">No voted players match that search.</p>
+                )}
+              </div>
+              <div ref={railScrollbarRef} className="stats-rail-scrollbar" data-visible="false" aria-hidden="true">
+                <span ref={railScrollbarThumbRef} className="stats-rail-scrollbar-thumb" />
+              </div>
             </div>
           </aside>
 
