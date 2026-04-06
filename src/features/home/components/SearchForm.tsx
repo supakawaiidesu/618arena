@@ -1,5 +1,7 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
+import { AccountMenuButton } from '../../auth/components/AccountMenuButton'
 import type { AuthProfile } from '../../auth/types'
+import { SiteSectionNav } from '../../navigation/SiteSectionNav'
 
 type SearchFormProps = {
   query: string
@@ -38,74 +40,20 @@ export function SearchForm({
   onSignIn,
   onSignOut,
 }: SearchFormProps) {
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const accountMenuRef = useRef<HTMLDivElement | null>(null)
   const isRetryLocked = retryCooldownSeconds > 0
   const retryMessage = isRetryLocked
     ? `Search unavailable for ${retryCooldownSeconds} more seconds.`
     : undefined
-  const connectedRiotName = profile?.riotGameName && profile.riotTagLine
-    ? `${profile.riotGameName}#${profile.riotTagLine}`
-    : null
-  const authLabel = isSignedIn
-    ? connectedRiotName ?? profile?.discordUsername ?? (isSyncingProfile ? 'Syncing...' : 'Connected')
-    : isAuthLoading
-      ? 'Loading...'
-      : 'Sign in'
   const statusMessages = [
     inputMessage ? { text: inputMessage, tone: 'muted' } : null,
     isSyncingProfile ? { text: 'Refreshing your Discord connections.', tone: 'muted' } : null,
     authErrorMessage ? { text: authErrorMessage, tone: 'error' } : null,
   ].filter((message) => message !== null)
 
-  useEffect(() => {
-    if (!isAccountMenuOpen) {
-      return
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (accountMenuRef.current?.contains(event.target as Node)) {
-        return
-      }
-
-      setIsAccountMenuOpen(false)
-    }
-
-    window.addEventListener('pointerdown', handlePointerDown)
-
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [isAccountMenuOpen])
-
-  useEffect(() => {
-    if (!isSignedIn) {
-      setIsAccountMenuOpen(false)
-    }
-  }, [isSignedIn])
-
-  const handleAuthClick = () => {
-    if (isSignedIn) {
-      setIsAccountMenuOpen((currentValue) => !currentValue)
-      return
-    }
-
-    void onSignIn()
-  }
-
-  const handleSignOutClick = () => {
-    setIsAccountMenuOpen(false)
-    void onSignOut()
-  }
-
   return (
     <section className="everything-stage">
       <form className="everything-bar" onSubmit={onSubmit}>
-        <nav className="everything-nav" aria-label="Site sections">
-          <span className="everything-nav-item is-active">Live Game</span>
-          <span className="everything-nav-item">Wiki</span>
-          <span className="everything-nav-item">Stats</span>
-        </nav>
+        <SiteSectionNav activeSection="live" />
 
         <input
           className="everything-search-input"
@@ -144,34 +92,15 @@ export function SearchForm({
           )}
         </button>
 
-        <div className="everything-auth-stack" ref={accountMenuRef}>
-          <button
-            type="button"
-            className={`everything-auth${isSignedIn ? ' is-signed-in' : ''}${isAccountMenuOpen ? ' is-open' : ''}${isAuthLoading ? ' is-auth-loading' : ''}`}
-            disabled={!isSignedIn && (!isConfigured || isAuthLoading)}
-            onClick={handleAuthClick}
-            aria-expanded={isSignedIn ? isAccountMenuOpen : undefined}
-            aria-haspopup={isSignedIn ? 'dialog' : undefined}
-            title={
-              isSignedIn
-                ? 'Open account menu'
-                : !isConfigured
-                  ? 'Add Supabase environment variables to enable Discord sign-in.'
-                  : isAuthLoading
-                    ? 'Loading...'
-                    : 'Sign in with Discord'
-            }
-          >
-            {authLabel}
-          </button>
-          {isSignedIn && isAccountMenuOpen ? (
-            <div className="account-menu-popup" role="dialog" aria-label="Account actions">
-              <button type="button" className="account-menu-action" onClick={handleSignOutClick}>
-                Sign out
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <AccountMenuButton
+          isConfigured={isConfigured}
+          isAuthLoading={isAuthLoading}
+          isSignedIn={isSignedIn}
+          isSyncingProfile={isSyncingProfile}
+          profile={profile}
+          onSignIn={onSignIn}
+          onSignOut={onSignOut}
+        />
       </form>
 
       {statusMessages.length > 0 ? (

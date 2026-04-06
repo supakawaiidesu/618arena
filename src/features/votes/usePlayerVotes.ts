@@ -4,7 +4,8 @@ import type { AuthProfile } from '../auth/types'
 import type { LiveLookup, PlayerRow } from '../lookup/types'
 import { getPlayerVoteKey } from './selectors'
 import {
-  normalizeVoteReason,
+  normalizeVoteReasons,
+  serializeVoteReasons,
   type PlayerGameVoteCache,
   type PlayerGameVoteState,
   type PlayerVoteCache,
@@ -22,7 +23,7 @@ type VoteRow = {
   riot_game_id: number
   player_riot_id_normalized: string
   direction: VoteDirection
-  reason: VoteReason
+  reason: unknown
 }
 
 export function usePlayerVotes({ result, profile, voteDisabledReason }: UsePlayerVotesOptions) {
@@ -82,15 +83,15 @@ export function usePlayerVotes({ result, profile, voteDisabledReason }: UsePlaye
     }
   }, [result, playerKeySignature, supabase, userId])
 
-  const setVote = async (player: PlayerRow, gameId: number, direction: VoteDirection, reason: VoteReason) => {
+  const setVote = async (player: PlayerRow, gameId: number, direction: VoteDirection, reasons: VoteReason[]) => {
     if (player.isSearchedPlayer || voteDisabledReason || !supabase || !result || !userId || !voterRiotIdNormalized) {
       return
     }
 
     const playerKey = getPlayerVoteKey(player)
     const gameKey = String(gameId)
-    const normalizedReason = normalizeVoteReason(reason, direction)
-    const previousVote = playerGameVotes[gameKey]?.[playerKey] ?? { direction: null, reason: null }
+    const normalizedReasons = normalizeVoteReasons(reasons, direction)
+    const previousVote = playerGameVotes[gameKey]?.[playerKey] ?? { direction: null, reasons: [] }
 
     setPlayerGameVotes((currentVotes) => ({
       ...currentVotes,
@@ -98,14 +99,14 @@ export function usePlayerVotes({ result, profile, voteDisabledReason }: UsePlaye
         ...currentVotes[gameKey],
         [playerKey]: {
           direction,
-          reason: normalizedReason,
+          reasons: normalizedReasons,
         },
       },
     }))
     setPlayerVotes((currentVotes) => applyVoteCountChange(currentVotes, playerKey, previousVote.direction, direction))
 
     try {
-      await ensureGameRow(supabase, result)
+      await ensureGameSnapshot(supabase, result)
 
       const { error } = await supabase.from('votes').upsert(
         {
@@ -114,7 +115,7 @@ export function usePlayerVotes({ result, profile, voteDisabledReason }: UsePlaye
           riot_game_id: gameId,
           player_riot_id_normalized: playerKey,
           direction,
-          reason: normalizedReason,
+          reason: serializeVoteReasons(normalizedReasons),
         },
         {
           onConflict: 'user_id,riot_game_id,player_riot_id_normalized',
@@ -139,7 +140,7 @@ export function usePlayerVotes({ result, profile, voteDisabledReason }: UsePlaye
 
     const playerKey = getPlayerVoteKey(player)
     const gameKey = String(gameId)
-    const previousVote = playerGameVotes[gameKey]?.[playerKey] ?? { direction: null, reason: null }
+    const previousVote = playerGameVotes[gameKey]?.[playerKey] ?? { direction: null, reasons: [] }
 
     setPlayerGameVotes((currentVotes) => ({
       ...currentVotes,
@@ -147,7 +148,7 @@ export function usePlayerVotes({ result, profile, voteDisabledReason }: UsePlaye
         ...currentVotes[gameKey],
         [playerKey]: {
           direction: null,
-          reason: null,
+          reasons: [],
         },
       },
     }))
@@ -210,7 +211,7 @@ async function reloadVotes({
   setPlayerVotes(buildVoteCounts(rows))
 }
 
-async function ensureGameRow(supabase: NonNullable<ReturnType<typeof getSupabaseBrowserClient>>, result: LiveLookup) {
+async function ensureGameSnapshot(supabase: NonNullable<ReturnType<typeof getSupabaseBrowserClient>>, result: LiveLookup) {
   const { error: gameError } = await supabase.from('games').upsert(
     {
       riot_game_id: result.gameId,
@@ -224,6 +225,26 @@ async function ensureGameRow(supabase: NonNullable<ReturnType<typeof getSupabase
   if (gameError) {
     throw gameError
   }
+
+  const { error: gamePlayersError } = await supabase.from('game_players').upsert(
+    result.players.map((player) => ({
+      riot_game_id: result.gameId,
+      riot_id_normalized: getPlayerVoteKey(player),
+      game_name: player.gameName,
+      tag_line: player.tagLine,
+      champion_name: player.championName,
+      champion_icon: player.championIcon,
+      arena_rank: player.arenaRank,
+      is_searched_player: player.isSearchedPlayer,
+    })),
+    {
+      onConflict: 'riot_game_id,riot_id_normalized',
+    },
+  )
+
+  if (gamePlayersError) {
+    throw gamePlayersError
+  }
 }
 
 function buildGameVoteState(rows: VoteRow[], gameId: number): PlayerGameVoteCache {
@@ -235,7 +256,7 @@ function buildGameVoteState(rows: VoteRow[], gameId: number): PlayerGameVoteCach
 
     votes[row.player_riot_id_normalized] = {
       direction: row.direction,
-      reason: normalizeVoteReason(row.reason, row.direction),
+      reasons: normalizeVoteReasons(row.reason, row.direction),
     }
     return votes
   }, {})

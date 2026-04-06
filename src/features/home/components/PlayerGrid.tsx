@@ -15,7 +15,7 @@ type PlayerGridProps = {
 }
 
 type PlayerCardProps = {
-  onVote: (player: LiveLookup['players'][number], gameId: number, direction: VoteDirection, reason: VoteReason) => void
+  onVote: (player: LiveLookup['players'][number], gameId: number, direction: VoteDirection, reasons: VoteReason[]) => void
   onClearVote: (player: LiveLookup['players'][number], gameId: number) => void
 }
 

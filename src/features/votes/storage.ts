@@ -1,4 +1,4 @@
-import { normalizeVoteReason, type PlayerGameVoteCache, type PlayerGameVoteState } from './types'
+import { normalizeVoteReasons, type PlayerGameVoteCache, type PlayerGameVoteState } from './types'
 
 const PLAYER_GAME_VOTE_CACHE_KEY = '618arena-player-game-votes'
 
@@ -43,12 +43,13 @@ function normalizeGameVoteFlag(value: unknown) {
 
 function normalizeGameVoteState(value: unknown): PlayerGameVoteState {
   if (!value || typeof value !== 'object') {
-    return { direction: null, reason: null }
+    return { direction: null, reasons: [] }
   }
 
   const voteState = value as {
     direction?: unknown
     reason?: unknown
+    reasons?: unknown
     up?: unknown
     down?: unknown
   }
@@ -56,17 +57,17 @@ function normalizeGameVoteState(value: unknown): PlayerGameVoteState {
   if (voteState.direction === 'up' || voteState.direction === 'down') {
     return {
       direction: voteState.direction,
-      reason: normalizeVoteReason(voteState.reason, voteState.direction),
+      reasons: normalizeVoteReasons(voteState.reasons ?? voteState.reason, voteState.direction),
     }
   }
 
   if (normalizeGameVoteFlag(voteState.down)) {
-    return { direction: 'down', reason: normalizeVoteReason(undefined, 'down') }
+    return { direction: 'down', reasons: normalizeVoteReasons(undefined, 'down') }
   }
 
   if (normalizeGameVoteFlag(voteState.up)) {
-    return { direction: 'up', reason: normalizeVoteReason(undefined, 'up') }
+    return { direction: 'up', reasons: normalizeVoteReasons(undefined, 'up') }
   }
 
-  return { direction: null, reason: null }
+  return { direction: null, reasons: [] }
 }

@@ -5,11 +5,14 @@ import { getPlayerVoteKey, getVoteButtonLabel, getVoteButtonTitle } from '../../
 import {
   getVoteReasonOptions,
   UNSPECIFIED_VOTE_REASON,
+  toggleVoteReason,
   type PlayerGameVoteCache,
   type PlayerVoteCounts,
   type VoteDirection,
   type VoteReason,
 } from '../../votes/types'
+
+type SelectableVoteReason = Exclude<VoteReason, typeof UNSPECIFIED_VOTE_REASON>
 
 type PlayerCardProps = {
   player: PlayerRow
@@ -18,7 +21,7 @@ type PlayerCardProps = {
   playerGameVotes: PlayerGameVoteCache
   voteCounts: PlayerVoteCounts
   voteDisabledReason: string | null
-  onVote: (player: PlayerRow, gameId: number, direction: VoteDirection, reason: VoteReason) => void
+  onVote: (player: PlayerRow, gameId: number, direction: VoteDirection, reasons: VoteReason[]) => void
   onClearVote: (player: PlayerRow, gameId: number) => void
 }
 
@@ -36,7 +39,7 @@ export function PlayerCard({
   const voteBoxRef = useRef<HTMLDivElement | null>(null)
   const currentVote = playerGameVotes[String(gameId)]?.[getPlayerVoteKey(player)]
   const currentVoteDirection = currentVote?.direction ?? null
-  const currentVoteReason = currentVote?.reason ?? null
+  const currentVoteReasons = currentVote?.reasons ?? []
   const voteDisableMessage = player.isSearchedPlayer
     ? `You cannot vote on ${player.gameName}#${player.tagLine}.`
     : voteDisabledReason
@@ -77,20 +80,24 @@ export function PlayerCard({
       return
     }
 
-    if (currentVoteDirection !== direction || currentVoteReason === null) {
-      onVote(player, gameId, direction, UNSPECIFIED_VOTE_REASON)
+    if (currentVoteDirection !== direction || currentVoteReasons.length === 0) {
+      onVote(player, gameId, direction, [UNSPECIFIED_VOTE_REASON])
     }
 
     setOpenVoteDirection(direction)
   }
 
-  const handleReasonClick = (reason: VoteReason) => {
+  const handleReasonClick = (reason: SelectableVoteReason) => {
     if (!openVoteDirection) {
       return
     }
 
-    onVote(player, gameId, openVoteDirection, reason)
-    setOpenVoteDirection(null)
+    const nextReasons =
+      currentVoteDirection === openVoteDirection
+        ? toggleVoteReason(currentVoteReasons, reason, openVoteDirection)
+        : [reason]
+
+    onVote(player, gameId, openVoteDirection, nextReasons)
   }
 
   const handleClearVote = () => {
@@ -185,15 +192,16 @@ export function PlayerCard({
             <div
               className={`player-vote-popup player-vote-popup-${openVoteDirection}`}
               role="dialog"
-              aria-label={`Choose why you ${openVoteDirection}voted ${player.gameName}#${player.tagLine}`}
+              aria-label={`Choose one or more reasons why you ${openVoteDirection}voted ${player.gameName}#${player.tagLine}`}
             >
               {reasonOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   className={`vote-reason-option${
-                    currentVoteDirection === openVoteDirection && currentVoteReason === option.value ? ' is-selected' : ''
+                    currentVoteDirection === openVoteDirection && currentVoteReasons.includes(option.value) ? ' is-selected' : ''
                   }`}
+                  aria-pressed={currentVoteDirection === openVoteDirection && currentVoteReasons.includes(option.value)}
                   onClick={() => handleReasonClick(option.value)}
                 >
                   {option.label}
