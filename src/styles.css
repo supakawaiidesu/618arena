@@ -1417,6 +1417,70 @@ input:focus-visible {
   -webkit-line-clamp: 3;
 }
 
+.wiki-augment-token {
+  font-weight: 700;
+}
+
+.wiki-augment-token.is-magic-damage {
+  color: #5fb3ff;
+}
+
+.wiki-augment-token.is-health {
+  color: #72d178;
+}
+
+.wiki-augment-token.is-attack-damage {
+  color: #f59b45;
+}
+
+.wiki-augment-token.is-ability-power {
+  color: #c58cff;
+}
+
+.wiki-augment-token.is-armor {
+  color: #e7d46a;
+}
+
+.wiki-augment-token.is-magic-resistance {
+  color: #63d7d7;
+}
+
+.wiki-augment-token.is-critical {
+  color: #ff6673;
+}
+
+.wiki-augment-token.is-movement-speed {
+  color: #9be66f;
+}
+
+.wiki-augment-token.is-gold {
+  color: #f2c94c;
+}
+
+.wiki-augment-token.is-ability-haste {
+  color: #0f9e9a;
+}
+
+.wiki-augment-token.is-true-damage {
+  color: #ffb49a;
+}
+
+.wiki-augment-token.is-omnivamp {
+  color: #c74848;
+}
+
+.wiki-augment-token.is-armor-penetration {
+  color: #ff704d;
+}
+
+.wiki-augment-token.is-magic-penetration {
+  color: #d0a0ff;
+}
+
+.wiki-augment-token.is-mana {
+  color: #75d7ff;
+}
+
 .wiki-augment-flags {
   min-width: 0;
   display: grid;

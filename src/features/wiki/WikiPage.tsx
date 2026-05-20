@@ -22,6 +22,45 @@ type AugmentFilters = {
   levels: AugmentLevelFilter[]
 }
 
+type AugmentTextHighlight = {
+  className: string
+  pattern: RegExp
+}
+
+const AUGMENT_TEXT_HIGHLIGHTS: AugmentTextHighlight[] = [
+  { className: 'is-armor-penetration', pattern: /\([^)]*\barmor penetration\b[^)]*\)/gi },
+  { className: 'is-magic-penetration', pattern: /\([^)]*\bmagic penetration\b[^)]*\)/gi },
+  { className: 'is-attack-damage', pattern: /\([^)]*\b(?:bonus\s+AD|AD|attack damage|physical damage)\b[^)]*\)/gi },
+  { className: 'is-ability-power', pattern: /\([^)]*\b(?:AP|ability power)\b[^)]*\)/g },
+  { className: 'is-health', pattern: /\([^)]*\b(?:health|HP)\b[^)]*\)/gi },
+  { className: 'is-magic-resistance', pattern: /\([^)]*\bmagic resistance\b[^)]*\)/gi },
+  { className: 'is-armor', pattern: /\([^)]*\barmor\b[^)]*\)/gi },
+  { className: 'is-critical', pattern: /\([^)]*\b(?:crit|critical)\w*\b[^)]*\)/gi },
+  { className: 'is-mana', pattern: /\([^)]*\bmana\b[^)]*\)/gi },
+  { className: 'is-health', pattern: /\b\d+(?:\.\d+)?%\s+(?:of\s+)?(?:target's|their|your)?\s*(?:current|missing|maximum|bonus)?\s*health\b/gi },
+  { className: 'is-health', pattern: /\b\d+(?:\.\d+)?(?:\s*(?:to|for|by|\/|\+|\*|x|;|-)\s*\d+(?:\.\d+)?|[+*/-]\d+|\*x)*\s+(?:bonus\s+)?health\b/gi },
+  { className: 'is-magic-damage', pattern: /\b\d+(?:\.\d+)?(?:\s*(?:to|for|by|\/|\+|\*|x|;|-)\s*\d+(?:\.\d+)?|[+*/-]\d+|\*x)*\s+(?:bonus\s+)?magic damage\b/gi },
+  { className: 'is-attack-damage', pattern: /\b\d+(?:\.\d+)?(?:\s*(?:to|for|by|\/|\+|\*|x|;|-)\s*\d+(?:\.\d+)?|[+*/-]\d+|\*x)*\s+(?:bonus\s+)?physical damage\b/gi },
+  { className: 'is-true-damage', pattern: /\b\d+(?:\.\d+)?(?:\s*(?:to|for|by|\/|\+|\*|x|;|-)\s*\d+(?:\.\d+)?|[+*/-]\d+|\*x)*\s+(?:bonus\s+)?true damage\b/gi },
+  { className: 'is-magic-penetration', pattern: /\bmagic penetration\b/gi },
+  { className: 'is-armor-penetration', pattern: /\barmor penetration\b/gi },
+  { className: 'is-magic-resistance', pattern: /\bmagic resistance\b/gi },
+  { className: 'is-movement-speed', pattern: /\b(?:move|movement) speed\b/gi },
+  { className: 'is-ability-haste', pattern: /\bability haste\b/gi },
+  { className: 'is-true-damage', pattern: /\b(?:bonus\s+)?true damage\b/gi },
+  { className: 'is-magic-damage', pattern: /\b(?:bonus\s+)?magic damage\b/gi },
+  { className: 'is-attack-damage', pattern: /\b(?:bonus\s+)?physical damage\b/gi },
+  { className: 'is-attack-damage', pattern: /\b(?:bonus\s+)?(?:attack damage|AD)\b/g },
+  { className: 'is-ability-power', pattern: /\b(?:ability power|AP)\b/g },
+  { className: 'is-critical', pattern: /\b(?:crit|critical)\w*(?:\s+(?:strike|damage|chance|strikes))?\b/gi },
+  { className: 'is-omnivamp', pattern: /\b(?:omnivamp|lifesteal)\b/gi },
+  { className: 'is-health', pattern: /\b(?:health|HP|heal|heals|healed|healing)\b/gi },
+  { className: 'is-armor', pattern: /\barmor\b/gi },
+  { className: 'is-gold', pattern: /\bgold\b/gi },
+  { className: 'is-mana', pattern: /\bmana\b/gi },
+  { className: 'is-magic-damage', pattern: /\b(?:Automatically|Autocast|automatic effects?)\b/g },
+]
+
 export function WikiPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -340,7 +379,7 @@ function AugmentRow({
         </span>
 
         <span className="wiki-augment-body">
-          <span className="wiki-copy wiki-augment-description">{augment.description.text}</span>
+          <span className="wiki-copy wiki-augment-description">{renderAugmentText(augment.description.text)}</span>
         </span>
 
         {hasLevels || hasNotes ? (
@@ -355,7 +394,7 @@ function AugmentRow({
         <div className="wiki-augment-expanded">
           <section className="wiki-detail-section">
             <h3 className="wiki-section-title">Effect</h3>
-            <p className="wiki-copy">{augment.description.text}</p>
+            <p className="wiki-copy">{renderAugmentText(augment.description.text)}</p>
           </section>
 
           {augment.levels.length > 0 ? (
@@ -364,7 +403,7 @@ function AugmentRow({
                 {augment.levels.map((level) => (
                   <div key={level.level} className="wiki-level-row">
                     <span className="wiki-level-marker">Level {level.level}</span>
-                    <p className="wiki-copy wiki-level-copy">{level.text}</p>
+                    <p className="wiki-copy wiki-level-copy">{renderAugmentText(level.text)}</p>
                   </div>
                 ))}
               </div>
@@ -374,7 +413,7 @@ function AugmentRow({
           {augment.notes ? (
             <section className="wiki-detail-section">
               <h3 className="wiki-section-title">Notes</h3>
-              <p className="wiki-copy">{augment.notes.text}</p>
+              <p className="wiki-copy">{renderAugmentText(augment.notes.text)}</p>
             </section>
           ) : null}
 
@@ -413,6 +452,55 @@ function AugmentRow({
       ) : null}
     </article>
   )
+}
+
+function renderAugmentText(text: string) {
+  const matches: { start: number; end: number; className: string }[] = []
+
+  for (const highlight of AUGMENT_TEXT_HIGHLIGHTS) {
+    highlight.pattern.lastIndex = 0
+
+    let match = highlight.pattern.exec(text)
+    while (match) {
+      const start = match.index
+      const end = start + match[0].length
+
+      if (end > start && !matches.some((existing) => start < existing.end && end > existing.start)) {
+        matches.push({ start, end, className: highlight.className })
+      }
+
+      match = highlight.pattern.exec(text)
+    }
+  }
+
+  if (matches.length === 0) {
+    return text
+  }
+
+  matches.sort((a, b) => a.start - b.start)
+
+  const content: ReactNode[] = []
+  let cursor = 0
+
+  matches.forEach((match, index) => {
+    if (match.start > cursor) {
+      content.push(text.slice(cursor, match.start))
+    }
+
+    content.push(
+      <span key={`${match.start}-${match.end}-${index}`} className={`wiki-augment-token ${match.className}`}>
+        {text.slice(match.start, match.end)}
+      </span>,
+    )
+
+    cursor = match.end
+  })
+
+  if (cursor < text.length) {
+    content.push(text.slice(cursor))
+  }
+
+  return content
 }
 
 function matchesAugmentSearch(augment: Augment, normalizedSearchQuery: string) {
