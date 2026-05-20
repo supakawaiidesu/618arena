@@ -24,7 +24,7 @@ type AugmentFilters = {
 
 export function WikiPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(allAugments[0]?.id ?? null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [openFilterMenu, setOpenFilterMenu] = useState<AugmentFilterMenu | null>(null)
   const [augmentFilters, setAugmentFilters] = useState<AugmentFilters>({ tiers: [], tags: [], levels: [] })
   const activeSection: WikiSection = 'Augments'
@@ -33,7 +33,6 @@ export function WikiPage() {
     ? allAugments.filter((augment) => matchesAugmentSearch(augment, normalizedSearchQuery))
     : allAugments
   const filteredAugments = searchedAugments.filter((augment) => matchesAugmentFilters(augment, augmentFilters))
-  const selectedAugment = filteredAugments.find((augment) => augment.id === selectedId) ?? filteredAugments[0] ?? null
 
   const handleTierToggle = (tier: AugmentTier) => {
     setAugmentFilters((filters) => ({ ...filters, tiers: toggleFilterValue(filters.tiers, tier) }))
@@ -54,10 +53,6 @@ export function WikiPage() {
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
-    if (selectedAugment) {
-      setSelectedId(selectedAugment.id)
-    }
   }
 
   return (
@@ -91,43 +86,33 @@ export function WikiPage() {
       </section>
 
       <section className="wiki-board" aria-label="Augment wiki browser">
-        <aside className="wiki-rail" aria-label="Augments">
-          <WikiListTools
-            section={activeSection}
-            augmentFilters={augmentFilters}
-            openFilterMenu={openFilterMenu}
-            resultCount={filteredAugments.length}
-            totalCount={allAugments.length}
-            onFilterMenuChange={setOpenFilterMenu}
-            onTierToggle={handleTierToggle}
-            onTagToggle={handleTagToggle}
-            onLevelToggle={handleLevelToggle}
-            onClear={handleFiltersClear}
-          />
-          <div className="wiki-rail-list">
-            {filteredAugments.length > 0 ? (
-              filteredAugments.map((augment) => (
-                <button
-                  key={augment.id}
-                  type="button"
-                  className={`wiki-rail-item wiki-tier-${getTierClass(augment.tier)}${selectedAugment?.id === augment.id ? ' is-active' : ''}`}
-                  aria-label={`${augment.name}, ${augment.tier} augment`}
-                  onClick={() => setSelectedId(augment.id)}
-                >
-                  <span className="wiki-rail-item-main">
-                    <span className="wiki-rail-item-title">{augment.name}</span>
-                  </span>
-                </button>
-              ))
-            ) : (
-              <p className="stats-panel-empty">No augments match that search.</p>
-            )}
-          </div>
-        </aside>
+        <WikiListTools
+          section={activeSection}
+          augmentFilters={augmentFilters}
+          openFilterMenu={openFilterMenu}
+          resultCount={filteredAugments.length}
+          totalCount={allAugments.length}
+          onFilterMenuChange={setOpenFilterMenu}
+          onTierToggle={handleTierToggle}
+          onTagToggle={handleTagToggle}
+          onLevelToggle={handleLevelToggle}
+          onClear={handleFiltersClear}
+        />
 
-        <section className="wiki-detail-panel" aria-label="Selected augment details">
-          {selectedAugment ? <AugmentDetail augment={selectedAugment} /> : null}
-        </section>
+        <div className="wiki-augment-list" aria-label="Filtered augments">
+          {filteredAugments.length > 0 ? (
+            filteredAugments.map((augment) => (
+              <AugmentRow
+                key={augment.id}
+                augment={augment}
+                isExpanded={expandedId === augment.id}
+                onToggle={() => setExpandedId((currentId) => (currentId === augment.id ? null : augment.id))}
+              />
+            ))
+          ) : (
+            <p className="stats-panel-empty wiki-augment-empty">No augments match that search.</p>
+          )}
+        </div>
       </section>
     </main>
   )
@@ -319,7 +304,17 @@ function FilterOption({
   )
 }
 
-function AugmentDetail({ augment }: { augment: Augment }) {
+function AugmentRow({
+  augment,
+  isExpanded,
+  onToggle,
+}: {
+  augment: Augment
+  isExpanded: boolean
+  onToggle: () => void
+}) {
+  const hasLevels = augment.levels.length > 0
+  const hasNotes = augment.notes !== null
   const referenceGroups = [
     { label: 'Augments', values: augment.references.augments },
     { label: 'Champions', values: augment.references.champions },
@@ -328,64 +323,95 @@ function AugmentDetail({ augment }: { augment: Augment }) {
   ].filter((group) => group.values.length > 0)
 
   return (
-    <article className={`wiki-detail wiki-tier-${getTierClass(augment.tier)}`} aria-label={`${augment.name}, ${augment.tier} augment details`}>
-      <header className="wiki-detail-header">
-        <h2 className="wiki-detail-title">{augment.name}</h2>
-        {augment.tags.length > 0 ? (
-          <div className="wiki-chip-row" aria-label="Augment tags">
-            {augment.tags.map((tag) => (
-              <span key={tag} className="wiki-chip">
-                {formatTag(tag)}
-              </span>
-            ))}
-          </div>
+    <article
+      className={`wiki-augment-row wiki-tier-${getTierClass(augment.tier)}${isExpanded ? ' is-expanded' : ''}`}
+      aria-label={`${augment.name}, ${augment.tier} augment`}
+    >
+      <button
+        type="button"
+        className={`wiki-augment-summary${hasLevels ? ' has-levels' : ''}${hasNotes ? ' has-notes' : ''}`}
+        aria-expanded={isExpanded}
+        onClick={onToggle}
+      >
+        <span className="wiki-augment-heading">
+          <span className="wiki-augment-title-group">
+            <span className="wiki-augment-title">{augment.name}</span>
+          </span>
+        </span>
+
+        <span className="wiki-augment-body">
+          <span className="wiki-copy wiki-augment-description">{augment.description.text}</span>
+        </span>
+
+        {hasLevels || hasNotes ? (
+          <span className="wiki-augment-flags" aria-label="Additional augment details">
+            {hasNotes ? <span className="wiki-augment-flag">Notes</span> : null}
+            {hasLevels ? <span className="wiki-augment-flag">Levels</span> : null}
+          </span>
         ) : null}
-      </header>
+      </button>
 
-      <section className="wiki-detail-section">
-        <h3 className="wiki-section-title">Effect</h3>
-        <p className="wiki-copy">{augment.description.text}</p>
-      </section>
-
-      {augment.levels.length > 0 ? (
-        <section className="wiki-detail-section">
-          <h3 className="wiki-section-title">Levels</h3>
-          <div className="wiki-level-grid">
-            {augment.levels.map((level) => (
-              <div key={level.level} className="wiki-level-card">
-                <span className="wiki-level-label">Level {level.level}</span>
-                <p className="wiki-copy">{level.text}</p>
+      {isExpanded ? (
+        <div className="wiki-augment-expanded">
+          {augment.tags.length > 0 ? (
+            <section className="wiki-detail-section">
+              <h3 className="wiki-section-title">Type</h3>
+              <div className="wiki-chip-row" aria-label="Augment tags">
+                {augment.tags.map((tag) => (
+                  <span key={tag} className="wiki-chip">
+                    {formatTag(tag)}
+                  </span>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+            </section>
+          ) : null}
 
-      {augment.notes ? (
-        <section className="wiki-detail-section">
-          <h3 className="wiki-section-title">Notes</h3>
-          <p className="wiki-copy">{augment.notes.text}</p>
-        </section>
-      ) : null}
+          <section className="wiki-detail-section">
+            <h3 className="wiki-section-title">Effect</h3>
+            <p className="wiki-copy">{augment.description.text}</p>
+          </section>
 
-      {referenceGroups.length > 0 ? (
-        <section className="wiki-detail-section">
-          <h3 className="wiki-section-title">References</h3>
-          <div className="wiki-reference-groups">
-            {referenceGroups.map((group) => (
-              <div key={group.label} className="wiki-reference-group">
-                <span className="wiki-reference-label">{group.label}</span>
-                <div className="wiki-chip-row">
-                  {group.values.map((value) => (
-                    <span key={value} className="wiki-chip">
-                      {value}
-                    </span>
-                  ))}
-                </div>
+          {augment.levels.length > 0 ? (
+            <section className="wiki-detail-section">
+              <h3 className="wiki-section-title">Levels</h3>
+              <div className="wiki-level-grid">
+                {augment.levels.map((level) => (
+                  <div key={level.level} className="wiki-level-card">
+                    <span className="wiki-level-label">Level {level.level}</span>
+                    <p className="wiki-copy">{level.text}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
+          ) : null}
+
+          {augment.notes ? (
+            <section className="wiki-detail-section">
+              <h3 className="wiki-section-title">Notes</h3>
+              <p className="wiki-copy">{augment.notes.text}</p>
+            </section>
+          ) : null}
+
+          {referenceGroups.length > 0 ? (
+            <section className="wiki-detail-section">
+              <h3 className="wiki-section-title">References</h3>
+              <div className="wiki-reference-groups">
+                {referenceGroups.map((group) => (
+                  <div key={group.label} className="wiki-reference-group">
+                    <span className="wiki-reference-label">{group.label}</span>
+                    <div className="wiki-chip-row">
+                      {group.values.map((value) => (
+                        <span key={value} className="wiki-chip">
+                          {value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
       ) : null}
     </article>
   )
