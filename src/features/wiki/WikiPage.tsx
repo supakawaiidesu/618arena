@@ -353,32 +353,18 @@ function AugmentRow({
 
       {isExpanded ? (
         <div className="wiki-augment-expanded">
-          {augment.tags.length > 0 ? (
-            <section className="wiki-detail-section">
-              <h3 className="wiki-section-title">Type</h3>
-              <div className="wiki-chip-row" aria-label="Augment tags">
-                {augment.tags.map((tag) => (
-                  <span key={tag} className="wiki-chip">
-                    {formatTag(tag)}
-                  </span>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
           <section className="wiki-detail-section">
             <h3 className="wiki-section-title">Effect</h3>
             <p className="wiki-copy">{augment.description.text}</p>
           </section>
 
           {augment.levels.length > 0 ? (
-            <section className="wiki-detail-section">
-              <h3 className="wiki-section-title">Levels</h3>
-              <div className="wiki-level-grid">
+            <section className="wiki-detail-section wiki-level-section" aria-label="Augment levels">
+              <div className="wiki-level-table">
                 {augment.levels.map((level) => (
-                  <div key={level.level} className="wiki-level-card">
-                    <span className="wiki-level-label">Level {level.level}</span>
-                    <p className="wiki-copy">{level.text}</p>
+                  <div key={level.level} className="wiki-level-row">
+                    <span className="wiki-level-marker">Level {level.level}</span>
+                    <p className="wiki-copy wiki-level-copy">{level.text}</p>
                   </div>
                 ))}
               </div>
@@ -393,20 +379,32 @@ function AugmentRow({
           ) : null}
 
           {referenceGroups.length > 0 ? (
-            <section className="wiki-detail-section">
-              <h3 className="wiki-section-title">References</h3>
-              <div className="wiki-reference-groups">
+            <section className="wiki-detail-section wiki-reference-section" aria-label="References">
+              <div className="wiki-reference-table">
                 {referenceGroups.map((group) => (
-                  <div key={group.label} className="wiki-reference-group">
-                    <span className="wiki-reference-label">{group.label}</span>
-                    <div className="wiki-chip-row">
+                  <div key={group.label} className="wiki-reference-row">
+                    <span className="wiki-section-title wiki-reference-label">{group.label}</span>
+                    <div className="wiki-reference-strip">
                       {group.values.map((value) => (
-                        <span key={value} className="wiki-chip">
+                        <span key={value} className="wiki-reference-cell">
                           {value}
                         </span>
                       ))}
                     </div>
                   </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {augment.tags.length > 0 ? (
+            <section className="wiki-detail-section wiki-tags-section">
+              <span className="wiki-section-title wiki-tags-label">Tags</span>
+              <div className="wiki-tag-strip" aria-label="Augment tags">
+                {augment.tags.map((tag) => (
+                  <span key={tag} className="wiki-tag-cell">
+                    {formatTag(tag)}
+                  </span>
                 ))}
               </div>
             </section>
