@@ -732,7 +732,8 @@ input:focus-visible {
   background: rgba(255, 255, 255, 0.28);
 }
 
-.stats-rail-scrollbar {
+.stats-rail-scrollbar,
+.wiki-augment-scrollbar {
   position: relative;
   min-height: 0;
   border-left: 1px solid var(--line);
@@ -740,7 +741,8 @@ input:focus-visible {
   pointer-events: none;
 }
 
-.stats-rail-scrollbar-thumb {
+.stats-rail-scrollbar-thumb,
+.wiki-augment-scrollbar-thumb {
   position: absolute;
   top: 0;
   left: 0;
@@ -752,7 +754,8 @@ input:focus-visible {
   transform: translateY(0);
 }
 
-.stats-rail-scrollbar[data-visible='false'] .stats-rail-scrollbar-thumb {
+.stats-rail-scrollbar[data-visible='false'] .stats-rail-scrollbar-thumb,
+.wiki-augment-scrollbar[data-visible='false'] .wiki-augment-scrollbar-thumb {
   display: none;
 }
 
@@ -1275,32 +1278,43 @@ input:focus-visible {
   scrollbar-color: rgba(255, 255, 255, 0.22) rgba(255, 255, 255, 0.04);
 }
 
-.wiki-augment-list {
+.wiki-augment-list-shell {
   min-height: 0;
   flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)),
+    var(--surface);
+}
+
+.wiki-augment-list {
+  min-height: 0;
   overflow-y: auto;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)),
     var(--surface);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.22) rgba(255, 255, 255, 0.04);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .wiki-rail-list::-webkit-scrollbar,
-.wiki-augment-list::-webkit-scrollbar,
 .wiki-detail-panel::-webkit-scrollbar {
   width: 12px;
 }
 
+.wiki-augment-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .wiki-rail-list::-webkit-scrollbar-track,
-.wiki-augment-list::-webkit-scrollbar-track,
 .wiki-detail-panel::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.04);
   border-left: 1px solid var(--line);
 }
 
 .wiki-rail-list::-webkit-scrollbar-thumb,
-.wiki-augment-list::-webkit-scrollbar-thumb,
 .wiki-detail-panel::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.18);
   border: 2px solid var(--surface);

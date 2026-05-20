@@ -1,5 +1,5 @@
 import type { FormEvent, ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SiteSectionNav } from '../navigation/SiteSectionNav'
 import { AUGMENT_TIERS, allAugments, type Augment, type AugmentTier } from './data/augments'
 
@@ -66,12 +66,63 @@ export function WikiPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [openFilterMenu, setOpenFilterMenu] = useState<AugmentFilterMenu | null>(null)
   const [augmentFilters, setAugmentFilters] = useState<AugmentFilters>({ tiers: [], tags: [], levels: [] })
+  const augmentListRef = useRef<HTMLDivElement | null>(null)
+  const augmentScrollbarRef = useRef<HTMLDivElement | null>(null)
+  const augmentScrollbarThumbRef = useRef<HTMLSpanElement | null>(null)
   const activeSection: WikiSection = 'Augments'
   const normalizedSearchQuery = normalizeSearchValue(searchQuery)
   const searchedAugments = normalizedSearchQuery
     ? allAugments.filter((augment) => matchesAugmentSearch(augment, normalizedSearchQuery))
     : allAugments
   const filteredAugments = searchedAugments.filter((augment) => matchesAugmentFilters(augment, augmentFilters))
+
+  useEffect(() => {
+    const augmentList = augmentListRef.current
+    const augmentScrollbar = augmentScrollbarRef.current
+    const augmentScrollbarThumb = augmentScrollbarThumbRef.current
+
+    if (!augmentList || !augmentScrollbar || !augmentScrollbarThumb) {
+      return
+    }
+
+    let frameId = 0
+
+    const updateScrollbarThumb = () => {
+      const { clientHeight, scrollHeight, scrollTop } = augmentList
+      const isScrollable = scrollHeight > clientHeight + 1
+
+      augmentScrollbar.dataset.visible = isScrollable ? 'true' : 'false'
+
+      if (!isScrollable) {
+        augmentScrollbarThumb.style.height = '0px'
+        augmentScrollbarThumb.style.transform = 'translateY(0px)'
+        return
+      }
+
+      const thumbHeight = Math.max(48, (clientHeight / scrollHeight) * clientHeight)
+      const maxScrollTop = scrollHeight - clientHeight
+      const maxThumbOffset = clientHeight - thumbHeight
+      const thumbOffset = maxScrollTop > 0 ? (scrollTop / maxScrollTop) * maxThumbOffset : 0
+
+      augmentScrollbarThumb.style.height = `${thumbHeight}px`
+      augmentScrollbarThumb.style.transform = `translateY(${thumbOffset}px)`
+    }
+
+    const scheduleScrollbarThumbUpdate = () => {
+      cancelAnimationFrame(frameId)
+      frameId = requestAnimationFrame(updateScrollbarThumb)
+    }
+
+    scheduleScrollbarThumbUpdate()
+    augmentList.addEventListener('scroll', scheduleScrollbarThumbUpdate, { passive: true })
+    window.addEventListener('resize', scheduleScrollbarThumbUpdate)
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      augmentList.removeEventListener('scroll', scheduleScrollbarThumbUpdate)
+      window.removeEventListener('resize', scheduleScrollbarThumbUpdate)
+    }
+  }, [augmentFilters, expandedId, filteredAugments.length, normalizedSearchQuery])
 
   const handleTierToggle = (tier: AugmentTier) => {
     setAugmentFilters((filters) => ({ ...filters, tiers: toggleFilterValue(filters.tiers, tier) }))
@@ -138,19 +189,24 @@ export function WikiPage() {
           onClear={handleFiltersClear}
         />
 
-        <div className="wiki-augment-list" aria-label="Filtered augments">
-          {filteredAugments.length > 0 ? (
-            filteredAugments.map((augment) => (
-              <AugmentRow
-                key={augment.id}
-                augment={augment}
-                isExpanded={expandedId === augment.id}
-                onToggle={() => setExpandedId((currentId) => (currentId === augment.id ? null : augment.id))}
-              />
-            ))
-          ) : (
-            <p className="stats-panel-empty wiki-augment-empty">No augments match that search.</p>
-          )}
+        <div className="wiki-augment-list-shell">
+          <div ref={augmentListRef} className="wiki-augment-list" aria-label="Filtered augments">
+            {filteredAugments.length > 0 ? (
+              filteredAugments.map((augment) => (
+                <AugmentRow
+                  key={augment.id}
+                  augment={augment}
+                  isExpanded={expandedId === augment.id}
+                  onToggle={() => setExpandedId((currentId) => (currentId === augment.id ? null : augment.id))}
+                />
+              ))
+            ) : (
+              <p className="stats-panel-empty wiki-augment-empty">No augments match that search.</p>
+            )}
+          </div>
+          <div ref={augmentScrollbarRef} className="wiki-augment-scrollbar" data-visible="false" aria-hidden="true">
+            <span ref={augmentScrollbarThumbRef} className="wiki-augment-scrollbar-thumb" />
+          </div>
         </div>
       </section>
     </main>
