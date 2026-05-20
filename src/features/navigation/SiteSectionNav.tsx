@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 
-type SiteSection = 'live' | 'stats'
+type SiteSection = 'live' | 'stats' | 'wiki'
 
 type SiteSectionNavProps = {
   activeSection: SiteSection
@@ -12,9 +12,9 @@ export function SiteSectionNav({ activeSection }: SiteSectionNavProps) {
       <Link to="/" className={`everything-nav-item${activeSection === 'live' ? ' is-active' : ''}`}>
         Live Game
       </Link>
-      <span className="everything-nav-item is-disabled" aria-disabled="true">
+      <Link to="/wiki" className={`everything-nav-item${activeSection === 'wiki' ? ' is-active' : ''}`}>
         Wiki
-      </span>
+      </Link>
       <Link to="/stats" className={`everything-nav-item${activeSection === 'stats' ? ' is-active' : ''}`}>
         Stats
       </Link>
